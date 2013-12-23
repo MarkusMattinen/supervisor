@@ -133,7 +133,12 @@ class POutputDispatcher(PDispatcher):
 
         maxbytes = getattr(config, '%s_logfile_maxbytes' % channel)
         backups = getattr(config, '%s_logfile_backups' % channel)
-        fmt = '%(message)s'
+        prepend_timestamp = getattr(config, '%s_prepend_timestamp' % channel)
+        if prepend_timestamp:
+            fmt = '%(asctime)s: %(message)s'
+        else:
+            fmt = '%(message)s'
+
         if logfile == 'syslog':
             warnings.warn("Specifying 'syslog' for filename is deprecated. "
                 "Use %s_syslog instead." % channel, DeprecationWarning)

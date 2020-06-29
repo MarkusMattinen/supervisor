@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:meld="http://www.plope.com/software/meld3">
+      xmlns:meld="https://github.com/Supervisor/supervisor">
 <head>
   <title>Supervisor Status</title>
   <link href="stylesheets/supervisor.css" rel="stylesheet" type="text/css" />
@@ -19,9 +19,9 @@
 
     <form meld:id="form" action="index.html" method="post">
       <ul id="buttons" class="clr">
-        <li id="refresh"><a href="index.html?action=refresh">&amp;nbsp;</a></li>
-        <li id="restart_all"><a href="index.html?action=restartall">&amp;nbsp;</a></li>
-        <li id="stop_all"><a href="index.html?action=stopall">&amp;nbsp;</a></li>
+        <li class="action-button"><a href="index.html?action=refresh">Refresh</a></li>
+        <li class="action-button"><a href="index.html?action=restartall">Restart All</a></li>
+        <li class="action-button"><a href="index.html?action=stopall">Stop All</a></li>
       </ul>
 
       <table cellspacing="0" meld:id="statustable">

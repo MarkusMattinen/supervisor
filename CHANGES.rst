@@ -1,22 +1,111 @@
-4.0.0.dev0 (Next 4.x Release)
------------------------------
+4.2.0 (2020-04-30)
+------------------
+
+- When ``supervisord`` is run in the foreground, a new ``--silent`` option
+  suppresses the main log from being echoed to ``stdout`` as it normally
+  would.  Patch by Trevor Foster.
+
+- Parsing ``command=`` now supports a new expansion, ``%(numprocs)d``, that
+  expands to the value of ``numprocs=`` in the same section.  Patch by
+  Santjago Corkez.
+
+- Web UI buttons no longer use background images.  Patch by Dmytro Karpovych.
+
+- The Web UI now has a link to view ``tail -f stderr`` for a process in
+  addition to the existing ``tail -f stdout`` link.  Based on a
+  patch by OuroborosCoding.
+
+- The HTTP server will now send an ``X-Accel-Buffering: no`` header in
+  logtail responses to fix Nginx proxy buffering.  Patch by Weizhao Li.
+
+- When ``supervisord`` reaps an unknown PID, it will now log a description
+  of the ``waitpid`` status.  Patch by Andrey Zelenchuk.
+
+- Fixed a bug introduced in 4.0.3 where ``supervisorctl tail -f foo | grep bar``
+  would fail with the error ``NoneType object has no attribute 'lower'``.  This
+  only occurred on Python 2.7 and only when piped.  Patch by Slawa Pidgorny.
+
+4.1.0 (2019-10-19)
+------------------
+
+- Fixed a bug on Python 3 only where logging to syslog did not work and
+  would log the exception ``TypeError: a bytes-like object is required, not 'str'``
+  to the main ``supervisord`` log file.  Patch by Vinay Sajip and Josh Staley.
+
+- Fixed a Python 3.8 compatibility issue caused by the removal of
+  ``cgi.escape()``.  Patch by Mattia Procopio.
+
+- The ``meld3`` package is no longer a dependency.  A version of ``meld3``
+  is now included within the ``supervisor`` package itself.
+
+4.0.4 (2019-07-15)
+------------------
+
+- Fixed a bug where ``supervisorctl tail <name> stdout`` would actually tail
+  ``stderr``.  Note that ``tail <name>`` without the explicit ``stdout``
+  correctly tailed ``stdout``.  The bug existed since 3.0a3 (released in
+  2007).  Patch by Arseny Hofman.
+
+- Improved the warning message added in 4.0.3 so it is now emitted for
+  both ``tail`` and ``tail -f``.  Patch by Vinay Sajip.
+
+- CVE-2019-12105.  Documentation addition only, no code changes.  This CVE
+  states that ``inet_http_server`` does not use authentication by default
+  (`details <https://github.com/Supervisor/supervisor/issues/1245>`_).  Note that
+  ``inet_http_server`` is not enabled by default, and is also not enabled
+  in the example configuration output by ``echo_supervisord_conf``.  The
+  behavior of the ``inet_http_server`` options have been correctly documented,
+  and have not changed, since the feature was introduced in 2006.  A new
+  `warning message <https://github.com/Supervisor/supervisor/commit/4e334d9cf2a1daff685893e35e72398437df3dcb>`_
+  was added to the documentation.
+
+4.0.3 (2019-05-22)
+------------------
+
+- Fixed an issue on Python 2 where running ``supervisorctl tail -f <name>``
+  would fail with the message
+  ``Cannot connect, error: <type 'exceptions.UnicodeEncodeError'>`` where it
+  may have worked on Supervisor 3.x.  The issue was introduced in Supervisor
+  4.0.0 due to new bytes/strings conversions necessary to add Python 3 support.
+  For ``supervisorctl`` to correctly display logs with Unicode characters, the
+  terminal encoding specified by the environment must support it.  If not, the
+  ``UnicodeEncodeError`` may still occur on either Python 2 or 3.  A new
+  warning message is now printed if a problematic terminal encoding is
+  detected.  Patch by Vinay Sajip.
+
+4.0.2 (2019-04-17)
+------------------
+
+- Fixed a bug where inline comments in the config file were not parsed
+  correctly such that the comments were included as part of the values.
+  This only occurred on Python 2, and only where the environment had an
+  extra ``configparser`` module installed.  The bug was introduced in
+  Supervisor 4.0.0 because of Python 2/3 compatibility code that expected
+  a Python 2 environment to only have a ``ConfigParser`` module.
+
+4.0.1 (2019-04-10)
+------------------
+
+- Fixed an issue on Python 3 where an ``OSError: [Errno 29] Illegal seek``
+  would occur if ``logfile`` in the ``[supervisord]`` section was set to
+  a special file like ``/dev/stdout`` that was not seekable, even if
+  ``logfile_maxbytes = 0`` was set to disable rotation.  The issue only
+  affected the main log and not child logs.  Patch by Martin Falatic.
+
+4.0.0 (2019-04-05)
+------------------
 
 - Support for Python 3 has been added.  On Python 3, Supervisor requires
-  Python 3.2 or later.
+  Python 3.4 or later.  Many thanks to Vinay Sajip, Scott Maxwell, Palm Kevin,
+  Tres Seaver, Marc Abramowitz, Son Nguyen, Shane Hathaway, Evan Andrews,
+  and Ethan Hann who all made major contributions to the Python 3 porting
+  effort.  Thanks also to all contributors who submitted issue reports and
+  patches towards this effort.
 
-- Support for Python 2.4 and 2.5 has been dropped.  On Python 2, Supervisor
-  now requires Python 2.6 or later.
+- Support for Python 2.4, 2.5, and 2.6 has been dropped.  On Python 2,
+  Supervisor now requires Python 2.7.
 
 - The ``supervisor`` package is no longer a namespace package.
-
-- Parsing ``environment=`` has been improved to allow escaped quotes
-  inside quotes and quoted empty values.  Patch by Stefan Friesel.
-
-- Added new ``stdout_syslog`` and ``stderr_syslog`` options to the config
-  file.  These are boolean options that indicate whether process output will
-  be sent to syslog.  Supervisor can now log to both files and syslog at the
-  same time.  Specifying a log filename of ``syslog`` is still supported
-  but deprecated.  Patch by Jason R. Coombs.
 
 - The behavior of the config file expansion ``%(here)s`` has changed.  In
   previous versions, a bug caused ``%(here)s`` to always expand to the
@@ -24,9 +113,118 @@
   a file included via ``[include]``, it will expand to the directory of
   that file.  Thanks to Alex Eftimie and Zoltan Toth-Czifra for the patches.
 
-- ``supervisorctl`` will now set its exit status to a non-zero value when an
-  error condition occurs.  Previous versions did not set the exit status so
-  it was always zero.  Patch by Luke Weber.
+- The default value for the config file setting ``exitcodes=``, the expected
+  exit codes of a program, has changed.  In previous versions, it was ``0,2``.
+  This caused issues with Golang programs where ``panic()`` causes the exit
+  code to be ``2``.  The default value for ``exitcodes`` is now ``0``.
+
+- An undocumented feature where multiple ``supervisorctl`` commands could be
+  combined on a single line separated by semicolons has been removed.
+
+- ``supervisorctl`` will now set its exit code to a non-zero value when an
+  error condition occurs.  Previous versions did not set the exit code for
+  most error conditions so it was almost always 0.  Patch by Luke Weber.
+
+- Added new ``stdout_syslog`` and ``stderr_syslog`` options to the config
+  file.  These are boolean options that indicate whether process output will
+  be sent to syslog.  Supervisor can now log to both files and syslog at the
+  same time.  Specifying a log filename of ``syslog`` is still supported
+  but deprecated.  Patch by Jason R. Coombs.
+
+3.4.0 (2019-04-05)
+------------------
+
+- FastCGI programs (``[fcgi-program:x]`` sections) can now be used in
+  groups (``[group:x]``).  Patch by Florian Apolloner.
+
+- Added a new ``socket_backlog`` option to the ``[fcgi-program:x]`` section
+  to set the listen(2) socket backlog.  Patch by Nenad Merdanovic.
+
+- Fixed a bug where ``SupervisorTransport`` (the XML-RPC transport used with
+  Unix domain sockets) did not close the connection when ``close()`` was
+  called on it.  Patch by Jérome Perrin.
+
+- Fixed a bug where ``supervisorctl start <name>`` could hang for a long time
+  if the system clock rolled back.  Patch by Joe LeVeque.
+
+3.3.5 (2018-12-22)
+------------------
+
+- Fixed a race condition where ``supervisord`` would cancel a shutdown
+  already in progress if it received ``SIGHUP``.  Now, ``supervisord`` will
+  ignore ``SIGHUP`` if shutdown is already in progress.  Patch by Livanh.
+
+- Fixed a bug where searching for a relative command ignored changes to
+  ``PATH`` made in ``environment=``.  Based on a patch by dongweiming.
+
+- ``childutils.ProcessCommunicationsProtocol`` now does an explicit
+  ``flush()`` after writing to ``stdout``.
+
+- A more descriptive error message is now emitted if a name in the config
+  file contains a disallowed character.  Patch by Rick van Hattem.
+
+3.3.4 (2018-02-15)
+------------------
+
+- Fixed a bug where rereading the configuration would not detect changes to
+  eventlisteners.  Patch by Michael Ihde.
+
+- Fixed a bug where the warning ``Supervisord is running as root and it is
+  searching for its config file`` may have been incorrectly shown by
+  ``supervisorctl`` if its executable name was changed.
+
+- Fixed a bug where ``supervisord`` would continue starting up if the
+  ``[supervisord]`` section of the config file specified ``user=`` but
+  ``setuid()`` to that user failed.  It will now exit immediately if it
+  cannot drop privileges.
+
+- Fixed a bug in the web interface where redirect URLs did not have a slash
+  between the host and query string, which caused issues when proxying with
+  Nginx.  Patch by Luke Weber.
+
+- When ``supervisord`` successfully drops privileges during startup, it is now
+  logged at the ``INFO`` level instead of ``CRIT``.
+
+- The HTTP server now returns a Content-Type header specifying UTF-8 encoding.
+  This may fix display issues in some browsers.  Patch by Katenkka.
+
+3.3.3 (2017-07-24)
+------------------
+
+- Fixed CVE-2017-11610.  A vulnerability was found where an authenticated
+  client can send a malicious XML-RPC request to ``supervisord`` that will
+  run arbitrary shell commands on the server.  The commands will be run as
+  the same user as ``supervisord``.  Depending on how ``supervisord`` has been
+  configured, this may be root.  See
+  https://github.com/Supervisor/supervisor/issues/964 for details.
+
+3.3.2 (2017-06-03)
+------------------
+
+- Fixed a bug introduced in 3.3.0 where the ``supervisorctl reload`` command
+  would crash ``supervisord`` with the error ``OSError: [Errno 9] Bad file
+  descriptor`` if the ``kqueue`` poller was used.  Patch by Jared Suttles.
+
+- Fixed a bug introduced in 3.3.0 where ``supervisord`` could get stuck in a
+  polling loop after the web interface was used, causing high CPU usage.
+  Patch by Jared Suttles.
+
+- Fixed a bug where if ``supervisord`` attempted to start but aborted due to
+  another running instance of ``supervisord`` with the same config, the
+  pidfile of the running instance would be deleted.  Patch by coldnight.
+
+- Fixed a bug where ``supervisorctl fg`` would swallow most XML-RPC faults.
+  ``fg`` now prints the fault and exits.
+
+- Parsing the config file will now fail with an error message if a process
+  or group name contains a forward slash character (``/``) since it would
+  break the URLs used by the web interface.
+
+- ``supervisorctl reload`` now shows an error message if an argument is
+  given.  Patch by Joel Krauska.
+
+- ``supervisorctl`` commands ``avail``, ``reread``, and ``version`` now show
+  an error message if an argument is given.
 
 3.3.1 (2016-08-02)
 ------------------
@@ -60,6 +258,16 @@
 
 - Files included via the ``[include]`` section are now logged at the ``INFO``
   level instead of ``WARN``.  Patch by Daniel Hahler.
+
+3.2.4 (2017-07-24)
+------------------
+
+- Backported from Supervisor 3.3.3:  Fixed CVE-2017-11610.  A vulnerability
+  was found where an authenticated client can send a malicious XML-RPC request
+  to ``supervisord`` that will run arbitrary shell commands on the server.
+  The commands will be run as the same user as ``supervisord``.  Depending on
+  how ``supervisord`` has been configured, this may be root.  See
+  https://github.com/Supervisor/supervisor/issues/964 for details.
 
 3.2.3 (2016-03-19)
 ------------------
@@ -147,6 +355,16 @@
 - Fixed an issue in Medusa that would cause ``supervisorctl tail -f`` to
   disconnect if many other ``supervisorctl`` commands were run in parallel.
   Patch by Stefan Friesel.
+
+3.1.4 (2017-07-24)
+------------------
+
+- Backported from Supervisor 3.3.3:  Fixed CVE-2017-11610.  A vulnerability
+  was found where an authenticated client can send a malicious XML-RPC request
+  to ``supervisord`` that will run arbitrary shell commands on the server.
+  The commands will be run as the same user as ``supervisord``.  Depending on
+  how ``supervisord`` has been configured, this may be root.  See
+  https://github.com/Supervisor/supervisor/issues/964 for details.
 
 3.1.3 (2014-10-28)
 ------------------
@@ -243,6 +461,16 @@
 
 - A warning is now logged if a glob pattern in an ``[include]`` section does
   not match any files.  Patch by Daniel Hahler.
+
+3.0.1 (2017-07-24)
+------------------
+
+- Backported from Supervisor 3.3.3:  Fixed CVE-2017-11610.  A vulnerability
+  was found where an authenticated client can send a malicious XML-RPC request
+  to ``supervisord`` that will run arbitrary shell commands on the server.
+  The commands will be run as the same user as ``supervisord``.  Depending on
+  how ``supervisord`` has been configured, this may be root.  See
+  https://github.com/Supervisor/supervisor/issues/964 for details.
 
 3.0 (2013-07-30)
 ----------------

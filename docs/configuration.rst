@@ -10,6 +10,10 @@ will look for a file named :file:`supervisord.conf` within the
 following locations, in the specified order.  It will use the first
 file it finds.
 
+#. :file:`../etc/supervisord.conf` (Relative to the executable)
+
+#. :file:`../supervisord.conf` (Relative to the executable)
+
 #. :file:`$CWD/supervisord.conf`
 
 #. :file:`$CWD/etc/supervisord.conf`
@@ -17,10 +21,6 @@ file it finds.
 #. :file:`/etc/supervisord.conf`
 
 #. :file:`/etc/supervisor/supervisord.conf` (since Supervisor 3.3.0)
-
-#. :file:`../etc/supervisord.conf` (Relative to the executable)
-
-#. :file:`../supervisord.conf` (Relative to the executable)
 
 .. note::
 
@@ -73,18 +73,26 @@ configuration values are as follows.
 
 ``file``
 
-  A path to a UNIX domain socket (e.g. :file:`/tmp/supervisord.sock`)
-  on which supervisor will listen for HTTP/XML-RPC requests.
-  :program:`supervisorctl` uses XML-RPC to communicate with
-  :program:`supervisord` over this port.  This option can include the
-  value ``%(here)s``, which expands to the directory in which the
-  :program:`supervisord` configuration file was found.
+  A path to a UNIX domain socket on which supervisor will listen for
+  HTTP/XML-RPC requests.  :program:`supervisorctl` uses XML-RPC to
+  communicate with :program:`supervisord` over this port.  This option
+  can include the value ``%(here)s``, which expands to the directory
+  in which the :program:`supervisord` configuration file was found.
 
   *Default*:  None.
 
   *Required*:  No.
 
   *Introduced*: 3.0
+
+.. warning::
+
+  The example configuration output by :program:`echo_supervisord_conf` uses
+  ``/tmp/supervisor.sock`` as the socket file.  That path is an example only
+  and will likely need to be changed to a location more appropriate for your
+  system.  Some systems periodically delete older files in ``/tmp``.  If the
+  socket file is deleted, :program:`supervisorctl` will be unable to
+  connect to :program:`supervisord`.
 
 ``chmod``
 
@@ -157,6 +165,19 @@ inserted.  If the configuration file has no ``[inet_http_server]``
 section, an inet HTTP server will not be started.  The allowable
 configuration values are as follows.
 
+.. warning::
+
+  The inet HTTP server is not enabled by default.  If you choose to enable it,
+  please read the following security warning.  The inet HTTP server is intended
+  for use within a trusted environment only.  It should only be bound to localhost
+  or only accessible from within an isolated, trusted network.  The inet HTTP server
+  does not support any form of encryption.  The inet HTTP server does not use
+  authentication by default (see the ``username=`` and ``password=`` options).
+  The inet HTTP server can be controlled remotely from :program:`supervisorctl`.
+  It also serves a web interface that allows subprocesses to be started or stopped,
+  and subprocess logs to be viewed.  **Never expose the inet HTTP server to the
+  public internet.**
+
 ``[inet_http_server]`` Section Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -166,7 +187,8 @@ configuration values are as follows.
   supervisor will listen for HTTP/XML-RPC requests.
   :program:`supervisorctl` will use XML-RPC to communicate with
   :program:`supervisord` over this port.  To listen on all interfaces
-  in the machine, use ``:9001`` or ``*:9001``.
+  in the machine, use ``:9001`` or ``*:9001``.  Please read the security
+  warning above.
 
   *Default*:  No default.
 
@@ -226,6 +248,12 @@ follows.
   The path to the activity log of the supervisord process.  This
   option can include the value ``%(here)s``, which expands to the
   directory in which the supervisord configuration file was found.
+
+  .. note::
+
+    If ``logfile`` is set to a special file like ``/dev/stdout`` that is
+    not seekable, log rotation must be disabled by setting
+    ``logfile_maxbytes = 0``.
 
   *Default*:  :file:`$CWD/supervisord.log`
 
@@ -306,6 +334,16 @@ follows.
 
   *Introduced*: 3.0
 
+``silent``
+
+  If true and not daemonized, logs will not be directed to stdout.
+
+  *Default*:  false
+
+  *Required*: No.
+
+  *Introduced*: 4.2.0
+
 ``minfds``
 
   The minimum number of file descriptors that must be available before
@@ -315,7 +353,8 @@ follows.
   is run as root.  supervisord uses file descriptors liberally, and will
   enter a failure mode when one cannot be obtained from the OS, so it's
   useful to be able to specify a minimum value to ensure it doesn't run out
-  of them during execution. This option is particularly useful on Solaris,
+  of them during execution.  These limits will be inherited by the managed
+  subprocesses.  This option is particularly useful on Solaris,
   which has a low per-process fd limit by default.
 
   *Default*:  1024
@@ -368,15 +407,17 @@ follows.
   Instruct :program:`supervisord` to switch users to this UNIX user
   account before doing any meaningful processing.  The user can only
   be switched if :program:`supervisord` is started as the root user.
-  If :program:`supervisord` can't switch users, it will still continue
-  but will write a log message at the ``critical`` level saying that it
-  can't drop privileges.
 
   *Default*: do not switch users
 
   *Required*:  No.
 
   *Introduced*: 3.0
+
+  *Changed*: 3.3.4.  If :program:`supervisord` can't switch to the
+  specified user, it will write an error message to ``stderr`` and
+  then exit immediately.  In earlier versions, it would continue to
+  run but would log a message at the ``critical`` level.
 
 ``directory``
 
@@ -599,18 +640,28 @@ where specified.
   e.g. ``/path/to/programname --port=80%(process_num)02d`` might
   expand to ``/path/to/programname --port=8000`` at runtime.  String
   expressions are evaluated against a dictionary containing the keys
-  ``group_name``, ``host_node_name``, ``process_num``, ``program_name``,
-  ``here`` (the directory of the supervisord config file), and all
-  supervisord's environment variables prefixed with ``ENV_``.  Controlled
-  programs should themselves not be daemons, as supervisord assumes it is
-  responsible for daemonizing its subprocesses (see
+  ``group_name``, ``host_node_name``, ``program_name``, ``process_num``,
+  ``numprocs``, ``here`` (the directory of the supervisord config file),
+  and all supervisord's environment variables prefixed with ``ENV_``.
+  Controlled programs should themselves not be daemons, as supervisord
+  assumes it is responsible for daemonizing its subprocesses (see
   :ref:`nondaemonizing_of_subprocesses`).
+
+  .. note::
+
+    The command will be truncated if it looks like a config file comment,
+    e.g. ``command=bash -c 'foo ; bar'`` will be truncated to
+    ``command=bash -c 'foo``.  Quoting will not prevent this behavior,
+    since the configuration file reader does not parse the command like
+    a shell would.
 
   *Default*: No default.
 
   *Required*:  Yes.
 
   *Introduced*: 3.0
+
+  *Changed*: 4.2.0.  Added support for the ``numprocs`` expansion.
 
 ``process_name``
 
@@ -746,11 +797,16 @@ where specified.
   request, :program:`supervisord` will restart the process if it exits
   with an exit code that is not defined in this list.
 
-  *Default*: 0,2
+  *Default*: 0
 
   *Required*:  No.
 
   *Introduced*: 3.0
+
+  .. note::
+
+      In Supervisor versions prior to 4.0, the default was ``0,2``.  In
+      Supervisor 4.0, the default was changed to ``0``.
 
 ``stopsignal``
 
@@ -860,6 +916,12 @@ where specified.
      (``stdout_logfile``) when rotation (``stdout_logfile_maxbytes``)
      is enabled.  This will result in the file being corrupted.
 
+  .. note::
+
+    If ``stdout_logfile`` is set to a special file like ``/dev/stdout``
+    that is not seekable, log rotation must be disabled by setting
+    ``stdout_logfile_maxbytes = 0``.
+
   *Default*: ``AUTO``
 
   *Required*:  No.
@@ -902,7 +964,7 @@ where specified.
 
   *Required*:  No.
 
-  *Introduced*: 3.0, replaces 2.0's ``logfile_backups``
+  *Introduced*: 3.0
 
 ``stdout_events_enabled``
 
@@ -938,6 +1000,12 @@ where specified.
      It is not possible for two processes to share a single log file
      (``stderr_logfile``) when rotation (``stderr_logfile_maxbytes``)
      is enabled.  This will result in the file being corrupted.
+
+  .. note::
+
+    If ``stderr_logfile`` is set to a special file like ``/dev/stderr``
+    that is not seekable, log rotation must be disabled by setting
+    ``stderr_logfile_maxbytes = 0``.
 
   *Default*: ``AUTO``
 
@@ -1079,7 +1147,7 @@ where specified.
    autorestart=unexpected
    startsecs=10
    startretries=3
-   exitcodes=0,2
+   exitcodes=0
    stopsignal=TERM
    stopwaitsecs=10
    stopasgroup=false
@@ -1107,6 +1175,12 @@ The :file:`supervisord.conf` file may contain a section named
 section, it must contain a single key named "files".  The values in
 this key specify other configuration files to be included within the
 configuration.
+
+.. note::
+
+    The ``[include]`` section is processed only by ``supervisord``.  It is
+    ignored by ``supervisorctl``.
+
 
 ``[include]`` Section Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1260,13 +1334,18 @@ the web server and the process manager to each do what they do best.
    number ``0`` (zero).  When the last child in the group exits,
    Supervisor will close the socket.
 
+.. note::
+
+   Prior to Supervisor 3.4.0, FastCGI programs (``[fcgi-program:x]``)
+   could not be referenced in groups (``[group:x]``).
+
 All the options available to ``[program:x]`` sections are
 also respected by ``fcgi-program`` sections.
 
 ``[fcgi-program:x]`` Section Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``[fcgi-program:x]`` sections have a single key which ``[program:x]``
+``[fcgi-program:x]`` sections have a few keys which ``[program:x]``
 sections do not have.
 
 ``socket``
@@ -1283,6 +1362,16 @@ sections do not have.
   *Required*:  Yes.
 
   *Introduced*: 3.0
+
+``socket_backlog``
+
+  Sets socket listen(2) backlog.
+
+  *Default*: socket.SOMAXCONN
+
+  *Required*:  No.
+
+  *Introduced*: 3.4.0
 
 ``socket_owner``
 
@@ -1329,7 +1418,7 @@ above constraints and additions.
    autorestart=unexpected
    startsecs=1
    startretries=3
-   exitcodes=0,2
+   exitcodes=0
    stopsignal=QUIT
    stopasgroup=false
    killasgroup=false
@@ -1358,10 +1447,9 @@ an explanation of how events work and how to implement programs that
 can be declared as event listeners.
 
 Note that all the options available to ``[program:x]`` sections are
-respected by eventlistener sections *except* for
-``stdout_capture_maxbytes`` and ``stderr_capture_maxbytes`` (event
-listeners cannot emit process communication events, see
-:ref:`capture_mode`).
+respected by eventlistener sections *except* for ``stdout_capture_maxbytes``.
+Eventlisteners cannot emit process communication events on ``stdout``,
+but can emit on ``stderr`` (see :ref:`capture_mode`).
 
 ``[eventlistener:x]`` Section Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1412,7 +1500,7 @@ above constraints and additions.
    autorestart=unexpected
    startsecs=1
    startretries=3
-   exitcodes=0,2
+   exitcodes=0
    stopsignal=QUIT
    stopwaitsecs=10
    stopasgroup=false

@@ -1,17 +1,6 @@
 Resources and Development
 =========================
 
-Mailing Lists
--------------
-
-Supervisor has a mailing list for users.  You may subscribe to the
-`Supervisor-users mailing list
-<http://lists.supervisord.org/mailman/listinfo/supervisor-users>`_.
-
-Supervisor has a mailing list for checkins too.  You may subscribe to the
-`Supervisor-checkins mailing list
-<http://lists.supervisord.org/mailman/listinfo/supervisor-checkins>`_.
-
 Bug Tracker
 -----------
 
@@ -28,10 +17,9 @@ You can also view the `Supervisor version control repository
 Contributing
 ------------
 
-Supervisor development is discussed on the mailing list.  We'll review
-contributions from the community in both
+We'll review contributions from the community in
 `pull requests <https://help.github.com/articles/using-pull-requests>`_
-on GitHub (preferred) and patches sent to the list.
+on GitHub.
 
 Author Information
 ------------------
@@ -41,7 +29,8 @@ The following people are responsible for creating Supervisor.
 Original Author
 ~~~~~~~~~~~~~~~
 
-- `Chris McDonough <http://plope.com>`_ is the original author of Supervisor.
+- `Chris McDonough <https://github.com/mcdonc>`_ is the original author of
+  Supervisor.
 
 Contributors
 ~~~~~~~~~~~~

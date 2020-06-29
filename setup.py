@@ -17,18 +17,18 @@ import sys
 
 py_version = sys.version_info[:2]
 
-if py_version < (2, 6):
-    raise RuntimeError('On Python 2, Supervisor requires Python 2.6 or later')
-elif (3, 0) < py_version < (3, 2):
-    raise RuntimeError('On Python 3, Supervisor requires Python 3.2 or later')
+if py_version < (2, 7):
+    raise RuntimeError('On Python 2, Supervisor requires Python 2.7 or later')
+elif (3, 0) < py_version < (3, 4):
+    raise RuntimeError('On Python 3, Supervisor requires Python 3.4 or later')
 
-requires = ['meld3 >= 1.0.0']
+requires = []
 tests_require = []
 if py_version < (3, 3):
-    tests_require.append('mock')
+    tests_require.append('mock<4.0.0.dev0')
 
 testing_extras = tests_require + [
-    'pytest < 3.0.0', # >= 2.5.2 but < 3.0.0.  pytest 3.0.0 breaks python 3.2
+    'pytest',
     'pytest-cov',
     ]
 
@@ -36,7 +36,7 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 try:
     README = open(os.path.join(here, 'README.rst')).read()
-    CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+    CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 except:
     README = """\
 Supervisor is a client/server system that allows its users to
@@ -54,13 +54,13 @@ CLASSIFIERS = [
     'Topic :: System :: Systems Administration',
     "Programming Language :: Python",
     "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 2.6",
     "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.2",
-    "Programming Language :: Python :: 3.3",
     "Programming Language :: Python :: 3.4",
     "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
 ]
 
 version_txt = os.path.join(here, 'supervisor/version.txt')
@@ -79,7 +79,6 @@ dist = setup(
     packages=find_packages(),
     install_requires=requires,
     extras_require={
-        'iterparse': ['cElementTree >= 1.0.2'],
         'testing': testing_extras,
         },
     tests_require=tests_require,

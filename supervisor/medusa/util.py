@@ -1,4 +1,4 @@
-from cgi import escape
+from supervisor.compat import escape
 
 def html_repr (object):
     so = escape (repr (object))

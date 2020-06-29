@@ -4,13 +4,13 @@ import time
 import traceback
 import datetime
 
-import meld3
+from supervisor import templating
 
 from supervisor.compat import urllib
-from supervisor.compat import parse_qs
-from supervisor.compat import parse_qsl
+from supervisor.compat import urlparse
 from supervisor.compat import as_string
-from supervisor.compat import PY3
+from supervisor.compat import PY2
+from supervisor.compat import unicode
 
 from supervisor.medusa import producers
 from supervisor.medusa.http_server import http_date
@@ -123,7 +123,7 @@ class DeferredWebProducer:
                 )
         else:
             # fix AttributeError: 'unicode' object has no attribute 'more'
-            if (not PY3) and (len(self.request.outgoing) > 0):
+            if PY2 and (len(self.request.outgoing) > 0):
                 body = self.request.outgoing[0]
                 if isinstance(body, unicode):
                     self.request.outgoing[0] = producers.simple_producer (body)
@@ -156,7 +156,7 @@ class ViewContext:
 
 class MeldView:
 
-    content_type = 'text/html'
+    content_type = 'text/html;charset=utf-8'
     delay = .5
 
     def __init__(self, context):
@@ -165,7 +165,7 @@ class MeldView:
         if not os.path.isabs(template):
             here = os.path.abspath(os.path.dirname(__file__))
             template = os.path.join(here, template)
-        self.root = meld3.parse_xml(template)
+        self.root = templating.parse_xml(template)
         self.callback = None
 
     def __call__(self):
@@ -240,37 +240,42 @@ class StatusView(MeldView):
         processname = urllib.quote(make_namespec(process.group.config.name,
                                                  process.config.name))
         start = {
-        'name':'Start',
-        'href':'index.html?processname=%s&amp;action=start' % processname,
-        'target':None,
+            'name': 'Start',
+            'href': 'index.html?processname=%s&amp;action=start' % processname,
+            'target': None,
         }
         restart = {
-        'name':'Restart',
-        'href':'index.html?processname=%s&amp;action=restart' % processname,
-        'target':None,
+            'name': 'Restart',
+            'href': 'index.html?processname=%s&amp;action=restart' % processname,
+            'target': None,
         }
         stop = {
-        'name':'Stop',
-        'href':'index.html?processname=%s&amp;action=stop' % processname,
-        'target':None,
+            'name': 'Stop',
+            'href': 'index.html?processname=%s&amp;action=stop' % processname,
+            'target': None,
         }
         clearlog = {
-        'name':'Clear Log',
-        'href':'index.html?processname=%s&amp;action=clearlog' % processname,
-        'target':None,
+            'name': 'Clear Log',
+            'href': 'index.html?processname=%s&amp;action=clearlog' % processname,
+            'target': None,
         }
-        tailf = {
-        'name':'Tail -f',
-        'href':'logtail/%s' % processname,
-        'target':'_blank'
+        tailf_stdout = {
+            'name': 'Tail -f Stdout',
+            'href': 'logtail/%s' % processname,
+            'target': '_blank'
+        }
+        tailf_stderr = {
+            'name': 'Tail -f Stderr',
+            'href': 'logtail/%s/stderr' % processname,
+            'target': '_blank'
         }
         if state == ProcessStates.RUNNING:
-            actions = [restart, stop, clearlog, tailf]
+            actions = [restart, stop, clearlog, tailf_stdout, tailf_stderr]
         elif state in (ProcessStates.STOPPED, ProcessStates.EXITED,
                        ProcessStates.FATAL):
-            actions = [start, None, clearlog, tailf]
+            actions = [start, None, clearlog, tailf_stdout, tailf_stderr]
         else:
-            actions = [None, None, clearlog, tailf]
+            actions = [None, None, clearlog, tailf_stdout, tailf_stderr]
         return actions
 
     def css_class_for_state(self, state):
@@ -389,9 +394,9 @@ class StatusView(MeldView):
                             rpcinterface.supervisor.stopProcess(namespec)
                             )
                     except RPCError as e:
+                        msg = 'unexpected rpc fault [%d] %s' % (e.code, e.text)
                         def stoperr():
-                            return 'unexpected rpc fault [%d] %s' % (
-                                e.code, e.text)
+                            return msg
                         stoperr.delay = 0.05
                         return stoperr
 
@@ -441,9 +446,9 @@ class StatusView(MeldView):
                         callback = rpcinterface.supervisor.clearProcessLogs(
                             namespec)
                     except RPCError as e:
+                        msg = 'unexpected rpc fault [%d] %s' % (e.code, e.text)
                         def clearerr():
-                            return 'unexpected rpc fault [%d] %s' % (
-                                e.code, e.text)
+                            return msg
                         clearerr.delay = 0.05
                         return clearerr
 
@@ -472,7 +477,7 @@ class StatusView(MeldView):
                     return NOT_DONE_YET
                 if message is not None:
                     server_url = form['SERVER_URL']
-                    location = server_url + '?message=%s' % urllib.quote(
+                    location = server_url + "/" + '?message=%s' % urllib.quote(
                         message)
                     response['headers']['Location'] = location
 
@@ -618,8 +623,8 @@ class supervisor_ui_handler:
         query = form['QUERY_STRING']
 
         # we only handle x-www-form-urlencoded values from POSTs
-        form_urlencoded = parse_qsl(data)
-        query_data = parse_qs(query)
+        form_urlencoded = urlparse.parse_qsl(data)
+        query_data = urlparse.parse_qs(query)
 
         for k, v in query_data.items():
             # ignore dupes

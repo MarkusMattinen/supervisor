@@ -220,7 +220,7 @@ Name                            Description
 =============================   ==============================================
 ACKNOWLEDGED                    The event listener has acknowledged (accepted
                                 or rejected) an event send.
-READY                           Event notificatons may be sent to this event
+READY                           Event notifications may be sent to this event
                                 listener
 BUSY                            Event notifications may not be sent to this
                                 event listener.
@@ -323,7 +323,7 @@ stderr, and responds with an ``OK`` result, and then subsequently a
    if __name__ == '__main__':
        main()
 
-Other sample event listeners are present within the :term:`superlance`
+Other sample event listeners are present within the :term:`Superlance`
 package, including one which can monitor supervisor subprocesses and
 restart a process if it is using "too much" memory.
 
